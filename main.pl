@@ -14,7 +14,7 @@
 :- include('pontos.pl').
 
 %----------------------- ESTRATEGIAS DE PROCURA ------------------------------
-%--------------------- Pesquisa Nao Informada --------------------------------
+%----------------------- Pesquisa Nao Informada ------------------------------
 %------------ Depth-First Search -- Pesquisa Primeiro em Profundidade --------
 
 depthFirstSearch(Nodo, Destino, [Nodo|Caminho]):-
@@ -44,7 +44,7 @@ dlsa(Nodo, Destino, Visitado, [ProxNodo|Caminho]):-
     adjacente(Nodo, ProxNodo),
     \+ memberchk(ProxNodo, Visitado),
     length(Caminho, Tamanho),
-    Tamanho < 100,
+    Tamanho < 100, 
     dlsa(ProxNodo, Destino, [Nodo|Visitado], Caminho).
 
 %----------- Breadth-lfirst Search -- Pesquisa Primeiro em Largura ----------
@@ -111,4 +111,33 @@ adjacente([Nodo|Caminho]/Custo/_, [ProxNodo,Nodo|Caminho]/NovoCusto/Est, Destino
 	\+ memberchk(ProxNodo, Caminho),
 	NovoCusto is Custo + PassoCusto,
 	estima(ProxNodo, Destino, Est).
+
+%-------------------- RESOLUCOES ---------------------------------------
+
+circuitoIndiferenciado(Nodo, Destino, Caminho):-
+	depthLimitedSearch(Nodo, Destino, Caminho).
+
+%-------
+
+circuitoSeletivo(Nodo, Destino, Tipo, [Nodo|Caminho]):-
+    dlscs(Nodo, Destino, [Nodo], Tipo, Caminho).
+
+dlscs(Nodo, Destino, _, Tipo, [Destino]):-
+    adjacente(Nodo, Destino),
+    ponto(Nodo, _, _, _, _, T, _),
+    memberchk(Tipo, T). 
+
+dlscs(Destino, Destino, _, _, _):- !, fail.
+
+dlscs(Nodo, Destino, Visitado, Tipo, [ProxNodo|Caminho]):-
+    adjacente(Nodo, ProxNodo),
+    \+ memberchk(ProxNodo, Visitado),
+    ponto(Nodo, _, _, _, _, T, _),
+    memberchk(Tipo, T),
+    length(Caminho, Tamanho),
+    Tamanho < 100, 
+    dlscs(ProxNodo, Destino, [Nodo|Visitado], Tipo, Caminho).
+
+%-----------------------------------------------------------------------
+
 

@@ -5,7 +5,7 @@ from math import sqrt
 def fixline(ponto):
     ponto["PONTO_RECOLHA_FREGUESIA"] = unidecode.unidecode(ponto["PONTO_RECOLHA_FREGUESIA"])
     ponto["PONTO_RECOLHA_LOCAL"] = unidecode.unidecode(ponto["PONTO_RECOLHA_LOCAL"])
-    ponto["CONTENTOR_TIPO"] = unidecode.unidecode(ponto["CONTENTOR_TIPO"])
+    ponto["CONTENTOR_RESÍDUO"] = unidecode.unidecode(ponto["CONTENTOR_RESÍDUO"])
 
 def pontobuilder(ponto):
     localatual = "'" + ponto["PONTO_RECOLHA_LOCAL"][6:].split(':')[0][1:] + "'"
