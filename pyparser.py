@@ -25,6 +25,7 @@ def parsePontos():
     totalCap = 0
     adjacencyTracker = []
     pontoNameList = []
+    adjacencyList = []
 
     for row in reader:
         fixline(row)
@@ -33,7 +34,7 @@ def parsePontos():
             if(pontoNum > 0):
                 currentPonto["CONTENTOR_TOTAL_LITROS"] = str(totalCap)
                 pontos.write("ponto(" + pontobuilder(currentPonto) + ").\n")
-                adjf.write("adjacencia(" + pontoLocalID +","+ novoPontoID + "," + str(distance(
+                adjacencyList.append("adjacencia(" + pontoLocalID +","+ novoPontoID + "," + str(distance(
                    float(currentPonto["Latitude"]), float(currentPonto["Longitude"]),
                    float(row["Latitude"]), float(row["Longitude"]))) + ").\n")
 
@@ -60,8 +61,14 @@ def parsePontos():
         for adjs in adjacency[1]:
             for pnt in pontoNameList:
                 if adjs in pnt[1] and pnt[0] != adjacency[0]:
-                    adjf.write("adjacencia(" + adjacency[0] +","+ pnt[0] + "," + str(distance(
-                    float(pnt[2]), float(pnt[3]),
-                    float(adjacency[2]), float(adjacency[3]))) + ").\n")
+                    pntDist = str(distance(float(pnt[2]), float(pnt[3]),
+                            float(adjacency[2]), float(adjacency[3])))
+                    newAdj = "adjacencia(" + adjacency[0] +","+ pnt[0] + "," + pntDist + ").\n"
+                    revAdj = "adjacencia(" + pnt[0] +","+ adjacency[0] + "," + pntDist + ").\n"
+                    if newAdj not in adjacencyList and revAdj not in adjacencyList:
+                        adjacencyList.append(newAdj)
+    for adjacency in sorted(adjacencyList):
+        adjf.write(adjacency)
 
+    
 parsePontos()
