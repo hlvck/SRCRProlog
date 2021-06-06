@@ -1,17 +1,22 @@
 % SRCR - Instrumento de Avaliacao Individual
-
+%
 % Declaracoes iniciais
 
 :- set_prolog_flag(discontiguous_warnings, off).
 :- set_prolog_flag(single_var_warnings, off).
 
-%--- adjacencia(pontoID1, pontoID2, distancia).
-%--- ponto(pontoID, Longitude, Latitude, Freguesia, Rua, [TipoContentores], CapacidadeTotal).
 :- dynamic adjacencia/3.
 :- dynamic ponto/7.
+%--- adjacencia(pontoID1, pontoID2, distancia).
+%--- ponto(pontoID, Longitude, Latitude, Freguesia, Rua, [TipoContentores], CapacidadeTotal).
 
-:- include('adjacencias.pl').
-:- include('pontos.pl').
+%--- DATASET COMPLETO ---
+%:- include('adjacencias.pl').
+%:- include('pontos.pl').
+
+%--- DATASET PARCIAL ---
+:- include('sample_adjacencias.pl').
+:- include('sample_pontos.pl').
 
 %----------------------- ESTRATEGIAS DE PROCURA ------------------------------
 %----------------------- Pesquisa Nao Informada ------------------------------
@@ -30,24 +35,7 @@ dfsa(Nodo, Destino, Visitado, [ProxNodo|Caminho]):-
     \+ memberchk(ProxNodo, Visitado),
     dfsa(ProxNodo, Destino, [Nodo|Visitado], Caminho).
 
-%------------ Depth-limited Search -- Pesquisa Limitada em Profundidade -----
-
-depthLimitedSearch(Nodo, Destino, [Nodo|Caminho]):-
-    dlsa(Nodo, Destino, [Nodo], Caminho).
-
-dlsa(Nodo, Destino, _, [Destino]):-
-    adjacente(Nodo, Destino).
-
-dlsa(Destino, Destino, _, _):- !, fail.
-
-dlsa(Nodo, Destino, Visitado, [ProxNodo|Caminho]):-
-    adjacente(Nodo, ProxNodo),
-    \+ memberchk(ProxNodo, Visitado),
-    length(Caminho, Tamanho),
-    Tamanho < 100, 
-    dlsa(ProxNodo, Destino, [Nodo|Visitado], Caminho).
-
-%----------- Breadth-lfirst Search -- Pesquisa Primeiro em Largura ----------
+%----------- Breadth-first Search -- Pesquisa Primeiro em Largura ------------
 
 breadthFirstSearch(Nodo, Destino, Caminho) :-
 	bfsa([[Nodo]], Solucao, Destino),
@@ -63,8 +51,8 @@ bfsa([[Nodo|Caminho]|CaminhoList], Solucao, Destino):-
 	bfsa(Res, Solucao, Destino);
 	bfsa(CaminhoList, Solucao, Destino).
 
-%--------------------- Pesquisa Informada ----------------------------------
-%------------ Greedy Search -- Pesquisa Gulosa -----------------------------
+%--------------------- Pesquisa Informada ------------------------------------
+%------------ Greedy Search -- Pesquisa Gulosa -------------------------------
 
 greedySearch(Nodo, Destino, Caminho/Custo):-
 	estima(Nodo, Destino, Est),
@@ -103,8 +91,11 @@ estima(P1, P2, Est):-
 selecciona(C, [C|Cs], Cs).
 selecciona(C, [X|Cs], [X|Xs]):- selecciona(C, Cs, Xs).
 
+%-------------------- Adjacencias --------------------------------------------
+
 adjacente(Ponto, ProxPonto):- adjacencia(Ponto, ProxPonto, _).
 adjacente(Ponto, ProxPonto):- adjacencia(ProxPonto, Ponto, _).
+
 
 adjacente([Nodo|Caminho]/Custo/_, [ProxNodo,Nodo|Caminho]/NovoCusto/Est, Destino):-
 	adjacencia(Nodo, ProxNodo, PassoCusto),
@@ -112,32 +103,128 @@ adjacente([Nodo|Caminho]/Custo/_, [ProxNodo,Nodo|Caminho]/NovoCusto/Est, Destino
 	NovoCusto is Custo + PassoCusto,
 	estima(ProxNodo, Destino, Est).
 
-%-------------------- RESOLUCOES ---------------------------------------
+adjacenteD(Ponto, ProxPonto, D):- adjacencia(Ponto, ProxPonto, D).
+adjacenteD(Ponto, ProxPonto, D):- adjacencia(ProxPonto, Ponto, D).
 
-circuitoIndiferenciado(Nodo, Destino, Caminho):-
-	depthLimitedSearch(Nodo, Destino, Caminho).
+%-------------------- RESOLUCOES ---------------------------------------------
+%------ Circuitos Nodo->Destino Residuos Indiferenciados ---------------------
 
-%-------
+circuitoIndiferenciado(Nodo, Destino, Circuitos):-
+	findall(Caminho, breadthFirstSearch(Nodo, Destino, Caminho), Circuitos).
 
-circuitoSeletivo(Nodo, Destino, Tipo, [Nodo|Caminho]):-
-    dlscs(Nodo, Destino, [Nodo], Tipo, Caminho).
+%------- Circuitos Nodo->Destino Residuos Seletivos --------------------------
 
-dlscs(Nodo, Destino, _, Tipo, [Destino]):-
+circuitoSeletivo(Nodo, Destino, Tipo, Circuitos):-
+	findall(Caminho, dfscsa(Nodo, Destino, Tipo, Caminho), Circuitos).
+
+dfscsa(Nodo, Destino, Tipo, [Nodo|Caminho]):-
+    dfscs(Nodo, Destino, [Nodo], Tipo, Caminho).
+
+dfscs(Nodo, Destino, _, Tipo, [Destino]):-
     adjacente(Nodo, Destino),
-    ponto(Nodo, _, _, _, _, T, _),
-    memberchk(Tipo, T). 
+    ponto(Destino, _, _, _, _, T, _),
+    member(Tipo, T). 
 
-dlscs(Destino, Destino, _, _, _):- !, fail.
+dfscs(Destino, Destino, _, _, _):- !, fail.
 
-dlscs(Nodo, Destino, Visitado, Tipo, [ProxNodo|Caminho]):-
+dfscs(Nodo, Destino, Visitado, Tipo, [ProxNodo|Caminho]):-
     adjacente(Nodo, ProxNodo),
     \+ memberchk(ProxNodo, Visitado),
-    ponto(Nodo, _, _, _, _, T, _),
+    ponto(ProxNodo, _, _, _, _, T, _),
     memberchk(Tipo, T),
-    length(Caminho, Tamanho),
-    Tamanho < 100, 
-    dlscs(ProxNodo, Destino, [Nodo|Visitado], Tipo, Caminho).
+    dfscs(ProxNodo, Destino, [Nodo|Visitado], Tipo, Caminho).
 
-%-----------------------------------------------------------------------
+%------- Circuitos com mais pontos (por tipo) --------------------------------
+
+maisPontosRecolha(Nodo, Destino, Tipo, Circuitos):-
+	findall(MLCircuitos, (circuitoSeletivo(Nodo, Destino, Tipo, CircuitosTodos),
+	maisLongas(CircuitosTodos, MLCircuitos)), Circuitos).
+
+maxlen([],[]).
+maxlen([H|T], [LH|LHT]) :-
+	length(H, LH),
+	maxlen(T, LHT).
+
+lengthLongest(ListofLists, Max):-
+	maxlen(ListofLists, Ls),
+	max_list(Ls, Max).
+
+maisLongas(ListofLists, ML):-
+	lengthLongest(ListofLists, Len),
+	member(ML, ListofLists),
+	length(ML, Len).
+
+%------ Indicadores de Produtividade: Distancia Media -----------------------
+
+indicadorProdutividade(Nodo, Destino, Result):-
+	findall((PP, DD), dfsp(Nodo, Destino, PP, DD), Result).
+
+dfsp(Nodo, Destino, Caminho, CustoMedio):-
+	depthFirstSearch(Nodo, Destino, Caminho),
+	distanciaTotal(Caminho, Custo),
+	length(Caminho, Total),
+	CustoMedio is Custo/Total.
+
+distanciaTotal([P1,P2], D):-
+	adjacenteD(P1,P2,D).
+
+distanciaTotal([P1,P2|T], D):-
+	adjacenteD(P1, P2, D1),
+	distanciaTotal([P2|T], D2),
+	D is D1+D2.
+
+%------ Caminho mais rapido (menor distancia) --------------------------------
+
+caminhoMaisRapido(Nodo, Destino, Result):-
+	findall((PP, DD), dfsml(Nodo, Destino, PP, DD), Caminhos),
+	minimo(Caminhos, Result).
+
+dfsml(Nodo, Destino, Caminho, Custo):-
+	depthFirstSearch(Nodo, Destino, Caminho),
+	distanciaTotal(Caminho, Custo).
+
+minimo([H|T], R):- minima(T, H, R).
+
+minima([], M, M).
+
+minima([(_, C)|T], (NM, CM), M):-
+	C>CM, !,
+	minima(T, (NM, CM), M).
+
+minima([(H, C)|T], (_, _), M):-
+	minima(T, (H,C), M).
+
+%------ Caminho mais eficiente - Capacidade total / Distancia ----------------
+
+caminhoMaisEficiente(Nodo, Destino, Result):-
+	findall((PP, DD), dfsme(Nodo, Destino, PP, DD), Caminhos),
+	maximo(Caminhos, Result).
+
+dfsme(Nodo, Destino, Caminho, Eficiencia):-
+	depthFirstSearch(Nodo, Destino, Caminho),
+	distanciaTotal(Caminho, Custo), 
+	capacidadeTotal(Caminho, Capacidade),
+	Eficiencia is Capacidade/Custo.
+
+capacidadeTotal([P1,P2], C):-
+	ponto(P1,_,_,_,_,_,C1),
+	ponto(P2,_,_,_,_,_,C2),
+	C is C1+C2.
+
+capacidadeTotal([P1,P2|T], C):-
+	ponto(P1,_,_,_,_,_,C1),
+	distanciaTotal([P2|T],C2),
+	C is C1+C2.
+
+maximo([H|T], R):- maxima(T, H, R).
+
+maxima([], M, M).
+
+maxima([(_, C)|T], (NM, CM), M):-
+	C<CM, !,
+	maxima(T, (NM, CM), M).
+
+maxima([(H, C)|T], (_, _), M):-
+	maxima(T, (H,C), M).
 
 
