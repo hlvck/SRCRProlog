@@ -110,7 +110,7 @@ adjacenteD(Ponto, ProxPonto, D):- adjacencia(ProxPonto, Ponto, D).
 %------ Circuitos Nodo->Destino Residuos Indiferenciados ---------------------
 
 circuitoIndiferenciado(Nodo, Destino, Circuitos):-
-	findall(Caminho, breadthFirstSearch(Nodo, Destino, Caminho), Circuitos).
+	findall(Caminho, depthFirstSearch(Nodo, Destino, Caminho), Circuitos).
 
 %------- Circuitos Nodo->Destino Residuos Seletivos --------------------------
 
